@@ -1,0 +1,28 @@
+name: i2do-ocsp-relay
+
+# EU VPS only. Prod nginx POSTs fullchain and gets a verified OCSP staple.
+#   cp .env.example .env && nano .env
+#   docker compose up -d --build
+# UFW: allow ${OCSP_RELAY_PORT} only from the RF prod public IP.
+
+services:
+  ocsp-relay:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${OCSP_RELAY_PORT:-8080}:8080"
+    environment:
+      ALLOW_IPS: ${ALLOW_IPS:?set ALLOW_IPS to the prod public IP}
+      RELAY_TOKEN: ${RELAY_TOKEN:-}
+      OCSP_TIMEOUT: ${OCSP_TIMEOUT:-8}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 3
